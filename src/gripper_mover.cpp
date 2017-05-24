@@ -84,7 +84,7 @@ class PickNPlacer {
 };
 
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "pick_and_placer");
+  ros::init(argc, argv, "pickandplacer");
 
   ros::AsyncSpinner spinner(2);
   spinner.start();
