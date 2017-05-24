@@ -17,7 +17,7 @@ class PickNPlacer {
     arm_.move();
     gripper_.waitForServer();
 
-    sub_ = node_handle.subscribe("block", 1, &PickNPlacer::DoPick, this);
+    sub_ = node_handle.subscribe("/block", 1, &PickNPlacer::DoPick, this);
   }
 
   void DoPick(geometry_msgs::Pose2D::ConstPtr const& msg) {
@@ -32,7 +32,6 @@ class PickNPlacer {
     pose.pose.orientation.y = 0.707106;
     pose.pose.orientation.z = 0.0;
     pose.pose.orientation.w = 0.707106;
-
     arm_.setPoseTarget(pose);
     if (!arm_.move()) {
       ROS_WARN("Could not move to prepare pose");
@@ -86,11 +85,11 @@ class PickNPlacer {
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, "pick_and_placer");
-  ros::NodeHandle nh;
 
-  ros::AsyncSpinner spinner(1);
+  ros::AsyncSpinner spinner(2);
   spinner.start();
 
+  ros::NodeHandle nh;
   PickNPlacer pnp(nh);
 
   ros::waitForShutdown();
