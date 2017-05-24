@@ -6,10 +6,10 @@
 #include <control_msgs/GripperCommandAction.h>
 
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "gripper_mover");
+  ros::init(argc, argv, "pickandplacer");
   ros::NodeHandle nh;
 
-  ros::AsyncSpinner spinner(1);
+  ros::AsyncSpinner spinner(2);
   spinner.start();
 
   moveit::planning_interface::MoveGroupInterface arm("arm");
@@ -31,7 +31,6 @@ int main(int argc, char **argv) {
   pose.pose.orientation.y = 0.707106;
   pose.pose.orientation.z = 0.0;
   pose.pose.orientation.w = 0.707106;
-
   arm.setPoseTarget(pose);
   if (!arm.move()) {
     ROS_WARN("Could not move to prepare pose");
