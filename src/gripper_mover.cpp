@@ -17,10 +17,17 @@ class PickNPlacer {
     arm_.move();
     gripper_.waitForServer();
 
-    sub_ = node_handle.subscribe("/block", 1, &PickNPlacer::DoPick, this);
+    sub_ = node_handle.subscribe("/block", 1, &PickNPlacer::DoPickAndPlace, this);
   }
 
-  void DoPick(geometry_msgs::Pose2D::ConstPtr const& msg) {
+  void DoPickAndPlace(geometry_msgs::Pose2D::ConstPtr const& msg) {
+    if (!DoPick(msg)) {
+      return;
+    }
+    DoPlace();
+  }
+
+  bool DoPick(geometry_msgs::Pose2D::ConstPtr const& msg) {
     // Prepare
     ROS_INFO("Moving to prepare pose");
     geometry_msgs::PoseStamped pose;
@@ -35,7 +42,7 @@ class PickNPlacer {
     arm_.setPoseTarget(pose);
     if (!arm_.move()) {
       ROS_WARN("Could not move to prepare pose");
-      return;
+      return false;
     }
 
     ROS_INFO("Opening gripper");
@@ -45,7 +52,7 @@ class PickNPlacer {
     bool finishedBeforeTimeout = gripper_.waitForResult(ros::Duration(30));
     if (!finishedBeforeTimeout) {
       ROS_WARN("Gripper open action did not complete");
-      return;
+      return false;
     }
 
     // Approach
@@ -54,7 +61,7 @@ class PickNPlacer {
     arm_.setPoseTarget(pose);
     if (!arm_.move()) {
       ROS_WARN("Could not move to grasp pose");
-      return;
+      return false;
     }
 
     // Grasp
@@ -64,7 +71,7 @@ class PickNPlacer {
     finishedBeforeTimeout = gripper_.waitForResult(ros::Duration(30));
     if (!finishedBeforeTimeout) {
       ROS_WARN("Gripper close action did not complete");
-      return;
+      return false;
     }
 
     // Retreat
@@ -73,8 +80,68 @@ class PickNPlacer {
     arm_.setPoseTarget(pose);
     if (!arm_.move()) {
       ROS_WARN("Could not move to retreat pose");
-      return;
+      return false;
     }
+
+    ROS_INFO("Pick complete");
+    return true;
+  }
+
+  bool DoPlace() {
+    // Prepare
+    ROS_INFO("Moving to prepare pose");
+    geometry_msgs::PoseStamped pose;
+    pose.header.frame_id = "base_link";
+    pose.pose.position.x = 0.1;
+    pose.pose.position.y = -0.2;
+    pose.pose.position.z = 0.1;
+    pose.pose.orientation.x = 0.0;
+    pose.pose.orientation.y = 0.707106;
+    pose.pose.orientation.z = 0.0;
+    pose.pose.orientation.w = 0.707106;
+    arm_.setPoseTarget(pose);
+    if (!arm_.move()) {
+      ROS_WARN("Could not move to prepare pose");
+      return false;
+    }
+
+    // Approach
+    ROS_INFO("Executing approach");
+    pose.pose.position.z = 0.05;
+    arm_.setPoseTarget(pose);
+    if (!arm_.move()) {
+      ROS_WARN("Could not move to place pose");
+      return false;
+    }
+
+    // Release
+    ROS_INFO("Opening gripper");
+    control_msgs::GripperCommandGoal goal;
+    goal.command.position = 0.1;
+    gripper_.sendGoal(goal);
+    bool finishedBeforeTimeout = gripper_.waitForResult(ros::Duration(30));
+    if (!finishedBeforeTimeout) {
+      ROS_WARN("Gripper open action did not complete");
+      return false;
+    }
+
+    // Retreat
+    ROS_INFO("Retreating");
+    pose.pose.position.z = 0.1;
+    arm_.setPoseTarget(pose);
+    if (!arm_.move()) {
+      ROS_WARN("Could not move to retreat pose");
+      return false;
+    }
+
+    // Rest
+    goal.command.position = 0.015;
+    gripper_.sendGoal(goal);
+    arm_.setNamedTarget("vertical");
+    arm_.move();
+
+    ROS_INFO("Place complete");
+    return true;
   }
 
  private:
