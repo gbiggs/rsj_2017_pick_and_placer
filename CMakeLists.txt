@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(gripper_mover)
+project(rsj_2017_pick_and_placer)
 
 ## Add support for C++11, supported in ROS Kinetic and newer
 add_definitions(-std=c++11)
@@ -116,7 +116,7 @@ find_package(Boost REQUIRED
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES gripper_mover
+#  LIBRARIES pick_and_placer
   CATKIN_DEPENDS
     roscpp
     control_msgs
@@ -141,7 +141,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/gripper_mover.cpp
+#   src/${PROJECT_NAME}/pick_and_placer.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -152,7 +152,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/gripper_mover_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/pick_and_placer_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -209,7 +209,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_gripper_mover.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_pick_and_placer.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
@@ -221,20 +221,20 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/servo_control_node.cpp)
-add_executable(${PROJECT_NAME}_gripper_mover src/gripper_mover.cpp)
+add_executable(${PROJECT_NAME}_pick_and_placer src/pick_and_placer.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
-set_target_properties(${PROJECT_NAME}_gripper_mover PROPERTIES OUTPUT_NAME gripper_mover PREFIX "")
+set_target_properties(${PROJECT_NAME}_pick_and_placer PROPERTIES OUTPUT_NAME pick_and_placer PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(${PROJECT_NAME}_gripper_mover ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_pick_and_placer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}_gripper_mover
+target_link_libraries(${PROJECT_NAME}_pick_and_placer
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
 )
