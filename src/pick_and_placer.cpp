@@ -109,7 +109,7 @@ class PickNPlacer {
     ROS_INFO("Moving to prepare pose");
     geometry_msgs::PoseStamped pose;
     pose.header.frame_id = "base_link";
-    pose.pose.position.x = msg->x - 0.01;
+    pose.pose.position.x = msg->x;
     pose.pose.position.y = msg->y;
     pose.pose.position.z = 0.1;
     pose.pose.orientation.x = 0.0;
