@@ -8,6 +8,7 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Pose2D.h>
 #include <moveit_msgs/CollisionObject.h>
+#include <moveit_msgs/Grasp.h>
 #include <shape_msgs/SolidPrimitive.h>
 
 #include <string>
@@ -105,121 +106,73 @@ class PickNPlacer {
   }
 
   bool DoPick(geometry_msgs::Pose2D::ConstPtr const& msg) {
-    // Prepare
-    ROS_INFO("Moving to prepare pose");
-    geometry_msgs::PoseStamped pose;
-    pose.header.frame_id = "base_link";
-    pose.pose.position.x = msg->x;
-    pose.pose.position.y = msg->y;
-    pose.pose.position.z = 0.1;
-    pose.pose.orientation.x = 0.0;
-    pose.pose.orientation.y = 0.707106;
-    pose.pose.orientation.z = 0.0;
-    pose.pose.orientation.w = 0.707106;
-    arm_.setPoseTarget(pose);
-    if (!arm_.move()) {
-      ROS_WARN("Could not move to prepare pose");
-      return false;
-    }
+    std::vector<moveit_msgs::Grasp> grasps;
+    moveit_msgs::Grasp g;
+    g.grasp_pose.header.frame_id = arm_.getPlanningFrame();
+    g.grasp_pose.pose.position.x = msg->x;
+    g.grasp_pose.pose.position.y = msg->y;
+    g.grasp_pose.pose.position.z = 0.05;
+    g.grasp_pose.pose.orientation.y = 0.707106;
+    g.grasp_pose.pose.orientation.w = 0.707106;
 
-    ROS_INFO("Opening gripper");
-    control_msgs::GripperCommandGoal goal;
-    goal.command.position = 0.1;
-    gripper_.sendGoal(goal);
-    bool finishedBeforeTimeout = gripper_.waitForResult(ros::Duration(30));
-    if (!finishedBeforeTimeout) {
-      ROS_WARN("Gripper open action did not complete");
-      return false;
-    }
+    g.pre_grasp_approach.direction.header.frame_id = arm_.getPlanningFrame();
+    g.pre_grasp_approach.direction.vector.z = -1;
+    g.pre_grasp_approach.min_distance = 0.05;
+    g.pre_grasp_approach.desired_distance = 0.07;
 
-    // Approach
-    ROS_INFO("Executing approach");
-    pose.pose.position.z = 0.05;
-    arm_.setPoseTarget(pose);
-    if (!arm_.move()) {
-      ROS_WARN("Could not move to grasp pose");
-      return false;
-    }
+    g.post_grasp_retreat.direction.header.frame_id = arm_.getPlanningFrame();
+    g.post_grasp_retreat.direction.vector.z = 1;
+    g.post_grasp_retreat.min_distance = 0.05;
+    g.post_grasp_retreat.desired_distance = 0.07;
 
-    // Grasp
-    ROS_INFO("Grasping object");
-    goal.command.position = 0.015;
-    gripper_.sendGoal(goal);
-    finishedBeforeTimeout = gripper_.waitForResult(ros::Duration(30));
-    if (!finishedBeforeTimeout) {
-      ROS_WARN("Gripper close action did not complete");
-      return false;
-    }
-    arm_.attachObject("sponge", "", gripper_group_.getLinkNames());
+    g.pre_grasp_posture.joint_names.resize(1, "crane_plus_moving_finger_joint");
+    g.pre_grasp_posture.points.resize(1);
+    g.pre_grasp_posture.points[0].positions.resize(1);
+    g.pre_grasp_posture.points[0].positions[0] = 0.1;
 
-    // Retreat
-    ROS_INFO("Retreating");
-    pose.pose.position.z = 0.1;
-    arm_.setPoseTarget(pose);
-    if (!arm_.move()) {
-      ROS_WARN("Could not move to retreat pose");
-      return false;
-    }
+    g.grasp_posture.joint_names.resize(1, "crane_plus_moving_finger_joint");
+    g.grasp_posture.points.resize(1);
+    g.grasp_posture.points[0].positions.resize(1);
+    g.grasp_posture.points[0].positions[0] = 0.01;
 
+    grasps.push_back(g);
+    arm_.setSupportSurfaceName("table");
+    ROS_INFO("Beginning pick");
+    arm_.pick("sponge", grasps);
     ROS_INFO("Pick complete");
     return true;
   }
 
   bool DoPlace() {
-    // Prepare
-    ROS_INFO("Moving to prepare pose");
-    geometry_msgs::PoseStamped pose;
-    pose.header.frame_id = "base_link";
-    pose.pose.position.x = 0.1;
-    pose.pose.position.y = -0.2;
-    pose.pose.position.z = 0.1;
-    pose.pose.orientation.x = 0.0;
-    pose.pose.orientation.y = 0.707106;
-    pose.pose.orientation.z = 0.0;
-    pose.pose.orientation.w = 0.707106;
-    arm_.setPoseTarget(pose);
-    if (!arm_.move()) {
-      ROS_WARN("Could not move to prepare pose");
-      return false;
-    }
+    std::vector<moveit_msgs::PlaceLocation> location;
+    moveit_msgs::PlaceLocation p;
+    p.place_pose.header.frame_id = arm_.getPlanningFrame();
+    p.place_pose.pose.position.x = 0.2;
+    p.place_pose.pose.position.y = 0;
+    p.place_pose.pose.position.z = 0.1;
+    p.place_pose.pose.orientation.y = 0.707106;
+    p.place_pose.pose.orientation.w = 0.707106;
 
-    // Approach
-    ROS_INFO("Executing approach");
-    pose.pose.position.z = 0.05;
-    arm_.setPoseTarget(pose);
-    if (!arm_.move()) {
-      ROS_WARN("Could not move to place pose");
-      return false;
-    }
+    p.pre_place_approach.direction.header.frame_id = arm_.getPlanningFrame();
+    p.pre_place_approach.direction.vector.z = -1;
+    p.pre_place_approach.min_distance = 0.05;
+    p.pre_place_approach.desired_distance = 0.07;
 
-    // Release
-    ROS_INFO("Opening gripper");
-    control_msgs::GripperCommandGoal goal;
-    goal.command.position = 0.1;
-    gripper_.sendGoal(goal);
-    bool finishedBeforeTimeout = gripper_.waitForResult(ros::Duration(30));
-    if (!finishedBeforeTimeout) {
-      ROS_WARN("Gripper open action did not complete");
-      return false;
-    }
-    arm_.detachObject("sponge");
+    p.post_place_retreat.direction.header.frame_id = arm_.getPlanningFrame();
+    p.post_place_retreat.direction.vector.z = 1;
+    p.post_place_retreat.min_distance = 0.05;
+    p.post_place_retreat.desired_distance = 0.07;
 
-    // Retreat
-    ROS_INFO("Retreating");
-    pose.pose.position.z = 0.15;
-    arm_.setPoseTarget(pose);
-    if (!arm_.move()) {
-      ROS_WARN("Could not move to retreat pose");
-      return false;
-    }
+    p.post_place_posture.joint_names.resize(1, "crane_plus_moving_finger_joint");
+    p.post_place_posture.points.resize(1);
+    p.post_place_posture.points[0].positions.resize(1);
+    p.post_place_posture.points[0].positions[0] = 0.1;
 
-    // Rest
-    goal.command.position = 0.015;
-    gripper_.sendGoal(goal);
-    arm_.setNamedTarget("vertical");
-    arm_.move();
-
-    ROS_INFO("Place complete");
+    location.push_back(p);
+    arm_.setSupportSurfaceName("table");
+    ROS_INFO("Beginning place");
+    arm_.place("sponge", location);
+    ROS_INFO("Place done");
     return true;
   }
 
