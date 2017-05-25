@@ -138,7 +138,10 @@ class PickNPlacer {
     grasps.push_back(g);
     arm_.setSupportSurfaceName("table");
     ROS_INFO("Beginning pick");
-    arm_.pick("sponge", grasps);
+    if (!arm_.pick("sponge", grasps)) {
+      ROS_WARN("Pick failed");
+      return false;
+    }
     ROS_INFO("Pick complete");
     return true;
   }
