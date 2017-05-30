@@ -2,6 +2,8 @@
 
 #include <ros/ros.h>
 #include <moveit/move_group_interface/move_group_interface.h>
+#include <actionlib/client/simple_action_client.h>
+#include <control_msgs/GripperCommandAction.h>
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, "pickandplacer");
@@ -12,6 +14,11 @@ int main(int argc, char **argv) {
 
   moveit::planning_interface::MoveGroupInterface arm("arm");
   arm.setPoseReferenceFrame("base_link");
+
+  actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper(
+      "/crane_plus_gripper/gripper_command",
+      "true");
+  gripper.waitForServer();
 
   // Prepare
   ROS_INFO("Moving to prepare pose");
@@ -28,6 +35,17 @@ int main(int argc, char **argv) {
   arm.setPoseTarget(pose);
   if (!arm.move()) {
     ROS_WARN("Could not move to prepare pose");
+    return 1;
+  }
+
+  // Open gripper
+  ROS_INFO("Opening gripper");
+  control_msgs::GripperCommandGoal goal;
+  goal.command.position = 0.1;
+  gripper.sendGoal(goal);
+  bool finishedBeforeTimeout = gripper.waitForResult(ros::Duration(30));
+  if (!finishedBeforeTimeout) {
+    ROS_WARN("Gripper open action did not complete");
     return 1;
   }
 
