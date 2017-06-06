@@ -20,7 +20,22 @@ class PickNPlacer {
       : arm_("arm"),
         gripper_group_("gripper"),
         gripper_("/crane_plus_gripper/gripper_command", "true") {
-    arm_.setPoseReferenceFrame("base_link");
+    ros::param::param<geometry_msgs::Pose2D>(
+      "~place_pose",
+      place_position_,
+      geometry_msgs::Pose2D(0.1, -0.2, 0.0));
+    ros::param::param<std::string>(
+      "~task_frame",
+      scene_task_frame_,
+      "base_link");
+    ros::param::param<float>("~pick_prepare_z", pick_prepare_z, 0.1);
+    ros::param::param<float>("~pick_z", pick_z, 0.05);
+    ros::param::param<float>("~place_prepare_z", place_prepare_z, 0.1);
+    ros::param::param<float>("~place_z", place_z, 0.05);
+    ros::param::param<float>("~gripper_open", gripper_open_, 0.1);
+    ros::param::param<float>("~gripper_close", gripper_close_, 0.015);
+
+    arm_.setPoseReferenceFrame(scene_task_frame_);
     gripper_.waitForServer();
     SetupPlanningScene();
 
@@ -108,10 +123,10 @@ class PickNPlacer {
     // Prepare
     ROS_INFO("Moving to prepare pose");
     geometry_msgs::PoseStamped pose;
-    pose.header.frame_id = "base_link";
+    pose.header.frame_id = scene_task_frame_;
     pose.pose.position.x = msg->x;
     pose.pose.position.y = msg->y;
-    pose.pose.position.z = 0.1;
+    pose.pose.position.z = pick_prepare_z;
     pose.pose.orientation.x = 0.0;
     pose.pose.orientation.y = 0.707106;
     pose.pose.orientation.z = 0.0;
@@ -124,7 +139,7 @@ class PickNPlacer {
 
     ROS_INFO("Opening gripper");
     control_msgs::GripperCommandGoal goal;
-    goal.command.position = 0.1;
+    goal.command.position = gripper_open_;
     gripper_.sendGoal(goal);
     bool finishedBeforeTimeout = gripper_.waitForResult(ros::Duration(30));
     if (!finishedBeforeTimeout) {
@@ -134,7 +149,7 @@ class PickNPlacer {
 
     // Approach
     ROS_INFO("Executing approach");
-    pose.pose.position.z = 0.05;
+    pose.pose.position.z = pick_z_;
     arm_.setPoseTarget(pose);
     if (!arm_.move()) {
       ROS_WARN("Could not move to grasp pose");
@@ -143,7 +158,7 @@ class PickNPlacer {
 
     // Grasp
     ROS_INFO("Grasping object");
-    goal.command.position = 0.015;
+    goal.command.position = gripper_close_;
     gripper_.sendGoal(goal);
     finishedBeforeTimeout = gripper_.waitForResult(ros::Duration(30));
     if (!finishedBeforeTimeout) {
@@ -154,7 +169,7 @@ class PickNPlacer {
 
     // Retreat
     ROS_INFO("Retreating");
-    pose.pose.position.z = 0.1;
+    pose.pose.position.z = pick_prepare_z;
     arm_.setPoseTarget(pose);
     if (!arm_.move()) {
       ROS_WARN("Could not move to retreat pose");
@@ -169,10 +184,10 @@ class PickNPlacer {
     // Prepare
     ROS_INFO("Moving to prepare pose");
     geometry_msgs::PoseStamped pose;
-    pose.header.frame_id = "base_link";
-    pose.pose.position.x = 0.1;
-    pose.pose.position.y = -0.2;
-    pose.pose.position.z = 0.1;
+    pose.header.frame_id = scene_task_frame_;
+    pose.pose.position.x = place_position_.x;
+    pose.pose.position.y = place_position_.y;
+    pose.pose.position.z = place_prepare_z_;
     pose.pose.orientation.x = 0.0;
     pose.pose.orientation.y = 0.707106;
     pose.pose.orientation.z = 0.0;
@@ -185,7 +200,7 @@ class PickNPlacer {
 
     // Approach
     ROS_INFO("Executing approach");
-    pose.pose.position.z = 0.05;
+    pose.pose.position.z = place_z_;
     arm_.setPoseTarget(pose);
     if (!arm_.move()) {
       ROS_WARN("Could not move to place pose");
@@ -195,7 +210,7 @@ class PickNPlacer {
     // Release
     ROS_INFO("Opening gripper");
     control_msgs::GripperCommandGoal goal;
-    goal.command.position = 0.1;
+    goal.command.position = gripper_open_;
     gripper_.sendGoal(goal);
     bool finishedBeforeTimeout = gripper_.waitForResult(ros::Duration(30));
     if (!finishedBeforeTimeout) {
@@ -206,7 +221,7 @@ class PickNPlacer {
 
     // Retreat
     ROS_INFO("Retreating");
-    pose.pose.position.z = 0.15;
+    pose.pose.position.z = pick_prepare_z_;
     arm_.setPoseTarget(pose);
     if (!arm_.move()) {
       ROS_WARN("Could not move to retreat pose");
@@ -214,7 +229,7 @@ class PickNPlacer {
     }
 
     // Rest
-    goal.command.position = 0.015;
+    goal.command.position = gripper_close_;
     gripper_.sendGoal(goal);
     arm_.setNamedTarget("vertical");
     arm_.move();
@@ -229,6 +244,14 @@ class PickNPlacer {
   actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper_;
   moveit::planning_interface::PlanningSceneInterface scene_;
   ros::Subscriber sub_;
+  geometry_msgs::Pose2D place_position_;
+  std::string scene_task_frame_;
+  float pick_prepare_z_;
+  float pick_z_;
+  float place_prepare_z_;
+  float place_z_;
+  float gripper_open_;
+  float gripper_close_;
 };
 
 int main(int argc, char **argv) {
