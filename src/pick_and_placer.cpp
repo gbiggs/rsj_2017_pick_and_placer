@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#include <string>
+
 
 class PickNPlacer {
  public:
@@ -20,18 +22,19 @@ class PickNPlacer {
       : arm_("arm"),
         gripper_group_("gripper"),
         gripper_("/crane_plus_gripper/gripper_command", "true") {
-    ros::param::param<geometry_msgs::Pose2D>(
-      "~place_pose",
-      place_position_,
-      geometry_msgs::Pose2D(0.1, -0.2, 0.0));
+    ros::param::param<float>(
+      "~place_x",
+      place_x_,
+      0.1);
+    ros::param::param<float>("~place_y", place_y_, -0.2);
     ros::param::param<std::string>(
       "~task_frame",
       scene_task_frame_,
       "base_link");
-    ros::param::param<float>("~pick_prepare_z", pick_prepare_z, 0.1);
-    ros::param::param<float>("~pick_z", pick_z, 0.05);
-    ros::param::param<float>("~place_prepare_z", place_prepare_z, 0.1);
-    ros::param::param<float>("~place_z", place_z, 0.05);
+    ros::param::param<float>("~pick_prepare_z", pick_prepare_z_, 0.1);
+    ros::param::param<float>("~pick_z", pick_z_, 0.05);
+    ros::param::param<float>("~place_prepare_z", place_prepare_z_, 0.1);
+    ros::param::param<float>("~place_z", place_z_, 0.05);
     ros::param::param<float>("~gripper_open", gripper_open_, 0.1);
     ros::param::param<float>("~gripper_close", gripper_close_, 0.015);
 
@@ -126,7 +129,7 @@ class PickNPlacer {
     pose.header.frame_id = scene_task_frame_;
     pose.pose.position.x = msg->x;
     pose.pose.position.y = msg->y;
-    pose.pose.position.z = pick_prepare_z;
+    pose.pose.position.z = pick_prepare_z_;
     pose.pose.orientation.x = 0.0;
     pose.pose.orientation.y = 0.707106;
     pose.pose.orientation.z = 0.0;
@@ -169,7 +172,7 @@ class PickNPlacer {
 
     // Retreat
     ROS_INFO("Retreating");
-    pose.pose.position.z = pick_prepare_z;
+    pose.pose.position.z = pick_prepare_z_;
     arm_.setPoseTarget(pose);
     if (!arm_.move()) {
       ROS_WARN("Could not move to retreat pose");
@@ -185,8 +188,8 @@ class PickNPlacer {
     ROS_INFO("Moving to prepare pose");
     geometry_msgs::PoseStamped pose;
     pose.header.frame_id = scene_task_frame_;
-    pose.pose.position.x = place_position_.x;
-    pose.pose.position.y = place_position_.y;
+    pose.pose.position.x = place_x_;
+    pose.pose.position.y = place_y_;
     pose.pose.position.z = place_prepare_z_;
     pose.pose.orientation.x = 0.0;
     pose.pose.orientation.y = 0.707106;
@@ -244,7 +247,8 @@ class PickNPlacer {
   actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper_;
   moveit::planning_interface::PlanningSceneInterface scene_;
   ros::Subscriber sub_;
-  geometry_msgs::Pose2D place_position_;
+  float place_x_;
+  float place_y_;
   std::string scene_task_frame_;
   float pick_prepare_z_;
   float pick_z_;
