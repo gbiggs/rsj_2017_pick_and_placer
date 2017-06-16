@@ -17,6 +17,7 @@ int main(int argc, char **argv) {
   // Specify end-effector positions in the "base_link" task frame
   arm.setPoseReferenceFrame("base_link");
 
+  // Create a client to command the gripper
   actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper(
       "/crane_plus_gripper/gripper_command",
       "true");
@@ -45,8 +46,11 @@ int main(int argc, char **argv) {
   // Open gripper
   ROS_INFO("Opening gripper");
   control_msgs::GripperCommandGoal goal;
+  // Open the gripper to 10 cm wide
   goal.command.position = 0.1;
+  // Send the gripper command
   gripper.sendGoal(goal);
+  // Wait for the command to complete
   bool finishedBeforeTimeout = gripper.waitForResult(ros::Duration(30));
   if (!finishedBeforeTimeout) {
     ROS_WARN("Gripper open action did not complete");
