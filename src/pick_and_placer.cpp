@@ -10,7 +10,9 @@ int main(int argc, char **argv) {
   ros::AsyncSpinner spinner(2);
   spinner.start();
 
+  // Set up the arm planning interface
   moveit::planning_interface::MoveGroupInterface arm("arm");
+  // Specify end-effector positions in the "base_link" task frame
   arm.setPoseReferenceFrame("base_link");
 
   // Prepare
@@ -25,7 +27,9 @@ int main(int argc, char **argv) {
   pose.pose.orientation.z = 0.0;
   pose.pose.orientation.w = 0.707106;
 
+  // Plan a move to the pose
   arm.setPoseTarget(pose);
+  // Execute the move
   if (!arm.move()) {
     ROS_WARN("Could not move to prepare pose");
     return 1;
