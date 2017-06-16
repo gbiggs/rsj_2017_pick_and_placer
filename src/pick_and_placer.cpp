@@ -26,10 +26,9 @@ class PickNPlacer {
   }
 
   void DoPickAndPlace(geometry_msgs::Pose2D::ConstPtr const& msg) {
-    if (!DoPick(msg)) {
-      return;
+    if (DoPick(msg)) {
+      DoPlace();
     }
-    DoPlace();
   }
 
   bool DoPick(geometry_msgs::Pose2D::ConstPtr const& msg) {
