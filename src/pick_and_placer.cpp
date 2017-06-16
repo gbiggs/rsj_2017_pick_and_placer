@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // Copyright 2017 Geoffrey Biggs (geoffrey.biggs@aist.go.jp)
 
 #include <ros/ros.h>
@@ -12,9 +13,12 @@ int main(int argc, char **argv) {
   ros::AsyncSpinner spinner(2);
   spinner.start();
 
+  // Set up the arm planning interface
   moveit::planning_interface::MoveGroupInterface arm("arm");
+  // Specify end-effector positions in the "base_link" task frame
   arm.setPoseReferenceFrame("base_link");
 
+  // Create a client to command the gripper
   actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper(
       "/crane_plus_gripper/gripper_command",
       "true");
@@ -31,7 +35,9 @@ int main(int argc, char **argv) {
   pose.pose.orientation.y = 0.707106;
   pose.pose.orientation.z = 0.0;
   pose.pose.orientation.w = 0.707106;
+  // Plan a move to the pose
   arm.setPoseTarget(pose);
+  // Execute the move
   if (!arm.move()) {
     ROS_WARN("Could not move to prepare pose");
     return 1;
@@ -39,8 +45,11 @@ int main(int argc, char **argv) {
 
   ROS_INFO("Opening gripper");
   control_msgs::GripperCommandGoal goal;
+  // Open the gripper to 10 cm wide
   goal.command.position = 0.1;
+  // Send the gripper command
   gripper.sendGoal(goal);
+  // Wait for the command to complete
   bool finishedBeforeTimeout = gripper.waitForResult(ros::Duration(30));
   if (!finishedBeforeTimeout) {
     ROS_WARN("Gripper open action did not complete");
@@ -49,6 +58,7 @@ int main(int argc, char **argv) {
 
   // Approach
   ROS_INFO("Executing approach");
+  // Move to 5 cm above the surface to get the gripper around the object
   pose.pose.position.z = 0.05;
   arm.setPoseTarget(pose);
   if (!arm.move()) {
@@ -58,6 +68,7 @@ int main(int argc, char **argv) {
 
   // Grasp
   ROS_INFO("Grasping object");
+  // Close the gripper to 1.5 cm wide
   goal.command.position = 0.015;
   gripper.sendGoal(goal);
   finishedBeforeTimeout = gripper.waitForResult(ros::Duration(30));
@@ -68,6 +79,7 @@ int main(int argc, char **argv) {
 
   // Retreat
   ROS_INFO("Retreating");
+  // Move to 10 cm above the surface to lift the object away
   pose.pose.position.z = 0.1;
   arm.setPoseTarget(pose);
   if (!arm.move()) {
