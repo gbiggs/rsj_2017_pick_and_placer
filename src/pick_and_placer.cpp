@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // Copyright 2017 Geoffrey Biggs (geoffrey.biggs@aist.go.jp)
 
 #include <ros/ros.h>
