@@ -18,10 +18,7 @@ class PickNPlacer {
     // Get the value for the configurable values from the parameter server, and
     // set sensible defaults for those values not specified on the parameter
     // server
-    ros::param::param<float>(
-      "~place_x",
-      place_x_,
-      0.1);
+    ros::param::param<float>("~place_x", place_x_, 0.1);
     ros::param::param<float>("~place_y", place_y_, -0.2);
     ros::param::param<std::string>(
       "~task_frame",
